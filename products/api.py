@@ -9,7 +9,32 @@ class ProductsViewSet (ModelViewSet):
     serializer_class = ProductsSerializer
     queryset = Product.objects.filter(active=1)
 
-    def list(self, request):
+    def list(self, request, *args, **kwargs):
+
+        latitude_update_string = self.request.query_params.get('latitude', None)
+        longitude_update_string = self.request.query_params.get('longitude', None)
+
+        if latitude_update_string is None or longitude_update_string is None:
+            products = Product.objects.all()
+        else:
+            query = "SELECT * " \
+                "FROM    products_product   " \
+                "WHERE   MBRContains " \
+                "( " \
+                "LineString(" \
+                "Point (" + longitude_update_string + " - 10 / ( 111.1 / COS(RADIANS(" + latitude_update_string + ")))"\
+                ", " + latitude_update_string + " - 10 / 111.1)," \
+                "Point (" + longitude_update_string + " + 10 / ( 111.1 / COS(RADIANS(" + latitude_update_string + ")))"\
+                ", " + latitude_update_string + " + 10 / 111.1)" \
+                ")," \
+                "Point(longitude,latitude)" \
+                ") "
+            products = Product.objects.raw(query)
+
+        serializer = self.get_serializer(products, many=True)
+        return Response(serializer.data)
+
+    def create(self, request, **kwargs):
 
         queryset = self.filter_queryset(self.get_queryset())
         page = self.paginate_queryset(queryset)
