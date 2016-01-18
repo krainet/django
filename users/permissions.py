@@ -1,23 +1,21 @@
+# -*- coding: utf-8 -*-
 from rest_framework.permissions import BasePermission
+
 
 class UserPermission(BasePermission):
 
     def has_permission(self, request, view):
 
-        if view.action in ['create', 'metadata']:
+        if view.action == 'create':
+            return True
+        elif request.user.is_superuser:
+            return True
+        elif view.action in ['retrieve', 'update', 'destroy']:
             return True
         else:
-            return request.user.is_authenticated()
+            return False
 
-    def has_object_permission(self, request, view, user):
 
-        return request.user.is_superuser or request.user == user
+    def has_object_permission(self, request, view, obj):
 
-class LoginPermission(BasePermission):
-
-    def has_permission(self, request, view):
-
-        if view.action == 'list':
-            return request.user.is_authenticated()
-        else:
-            return True
+        return request.user.is_superuser or request.user == obj
